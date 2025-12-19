@@ -9,7 +9,7 @@ response = requests.get(file_url)
 # Check if the request was successful
 if response.status_code == 200:
     # Save the file locally in the GitHub Codespace (in-memory or on disk in the workspace)
-    file_path = "Qual_Report_25LPLML281106_1__2025-12-01_06.17.42.dat"
+    file_path = "Quality report.dat"
     with open(file_path, "wb") as file:
         file.write(response.content)
     print(f"File downloaded and saved as {file_path}")
