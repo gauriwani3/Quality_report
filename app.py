@@ -28,18 +28,19 @@ def extract_header(binary_data):
         return None, None
 
     try:
-        # Extract the identifier (adjust based on the actual format observed)
-        identifier = header[:20].decode('utf-8').strip()  # First 20 bytes as the identifier
-        st.write(f"Identifier: {identifier}")
+        # Extract the identifier (first 20 bytes) as raw bytes (without decoding)
+        identifier = header[:20]  # First 20 bytes as identifier (raw bytes)
+        st.write(f"Raw Identifier (bytes): {identifier}")
         
-        # Look for any marker like `beginheader:` after the identifier (if it's part of the structure)
-        marker = header[20:].decode('utf-8', errors='ignore')  # Decode the remaining part for markers or extra info
-        st.write(f"Remaining Data after Identifier: {marker}")
+        # Try to decode the identifier as UTF-8 (if it seems like text)
+        identifier_str = identifier.decode('utf-8', errors='ignore').strip()
+        st.write(f"Decoded Identifier: {identifier_str}")
+        
+        # Check for any "beginheader:" text or other markers after the identifier
+        marker = header[20:].decode('utf-8', errors='ignore')  # Decode remaining part for markers
+        st.write(f"Remaining Header Data (Marker): {marker}")
 
-        # You can either adjust this further based on the actual format
-        # For now, we're skipping over the rest of the header and treating it as just an identifier.
-        
-        return identifier, marker  # Returning identifier and the rest of the header as marker
+        return identifier_str, marker  # Return identifier and the rest of the header as marker
     
     except Exception as e:
         # Display the error if unpacking fails
