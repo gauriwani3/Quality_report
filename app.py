@@ -60,28 +60,36 @@ def process_file():
     if not identifier:
         return None
 
-    # Step 3: Inspect the Data Section
+    # Step 3: Inspect the Data Section (starting after the first 128 bytes)
     data_section = binary_data[128:]  # Assuming data starts after the header (128 bytes)
     
     # Print first few bytes of the data section to inspect its structure
     st.write(f"Data Section (first 64 bytes): {data_section[:64].hex()}")
 
-    # Here, we would need to modify the struct.unpack based on the data structure you observe
+    # Convert the data section to a string to analyze it better (assuming it's text-based)
     try:
-        # If the section contains integers (example), unpack it as a series of 4-byte integers
-        # Adjust the format based on what you find in the data section
-        # For now, let's assume it's a series of 4-byte integers
-        section_data = struct.unpack('i' * (len(data_section) // 4), data_section)
-    except struct.error as e:
-        st.error(f"Error unpacking data section: {str(e)}")
+        data_section_str = data_section.decode('utf-8', errors='ignore')  # Convert to string
+        st.write(f"Data Section (Decoded): {data_section_str[:500]}...")  # Show the first 500 chars
+    except Exception as e:
+        st.error(f"Error decoding data section: {str(e)}")
         return None
-    
+
+    # Parse the text data to extract meaningful information
+    # For now, let's assume it is a list of key-value pairs and split accordingly:
+    data_lines = data_section_str.split("\n")  # Split into lines
+
+    parsed_data = {}
+    for line in data_lines:
+        if ":" in line:  # Looks like key-value pairs
+            key, value = line.split(":", 1)
+            parsed_data[key.strip()] = value.strip()
+
     return {
         "header": {
             "identifier": identifier,
             "marker": marker  # We’re using `marker` for now as the rest of the header data
         },
-        "data_section": section_data
+        "data_section": parsed_data
     }
 
 # Streamlit app to display the data
