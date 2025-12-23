@@ -3,6 +3,7 @@ import requests
 
 # GitHub URL for the .dat file in Releases
 url = "https://github.com/gauriwani3/Quality_report/releases/download/v1.0/Qual_Report_25LPML281106_1.__2025-12-01_06.17.42.dat"
+
 # Function to download the .dat file from GitHub Releases
 def download_file():
     response = requests.get(url)
@@ -12,7 +13,7 @@ def download_file():
         st.error("Failed to download the file from GitHub.")
         return None
 
-# Function to extract the header (first 128 bytes)
+# Function to extract the header (first 128 bytes) safely
 def extract_header(binary_data):
     header_size = 128
     header = binary_data[:header_size]
@@ -20,16 +21,17 @@ def extract_header(binary_data):
     st.write(f"Header Length: {len(header)}")
 
     try:
-        # First 20 bytes as identifier (raw)
-        identifier = header[:20]
-        identifier_str = identifier.decode('utf-8', errors='ignore').strip()
-        st.write(f"Decoded Identifier: {identifier_str}")
+        # First 20 bytes as identifier (keep raw, decode latin-1 to avoid errors)
+        identifier_bytes = header[:20]
+        identifier_str = identifier_bytes.decode('latin-1').strip()
+        st.write(f"Identifier (safe decoding): {identifier_str}")
 
         # Remaining header bytes as marker / metadata
-        marker = header[20:].decode('utf-8', errors='ignore')
-        st.write(f"Marker Info: {marker}")
+        marker_bytes = header[20:]
+        marker_str = marker_bytes.decode('latin-1', errors='ignore').strip()
+        st.write(f"Marker Info: {marker_str}")
 
-        return identifier_str, marker
+        return identifier_str, marker_str
 
     except Exception as e:
         st.error(f"Error processing header: {e}")
@@ -48,7 +50,7 @@ def process_file():
     # Data section starts after 128-byte header
     data_section = binary_data[128:]
 
-    # Decode data section as UTF-8 text
+    # Decode data section safely
     try:
         data_section_str = data_section.decode('utf-8', errors='ignore')
     except Exception as e:
@@ -58,14 +60,14 @@ def process_file():
     # Parse key-value pairs
     parsed_data = {}
     for line in data_section_str.splitlines():
-        if not line.strip():
+        line = line.strip()
+        if not line:
             continue
         if ':' in line:
             key, value = line.split(':', 1)
             parsed_data[key.strip()] = value.strip()
         else:
-            # For lines without ":", store as None
-            parsed_data[line.strip()] = None
+            parsed_data[line] = None
 
     return {
         "header": {
@@ -83,8 +85,8 @@ def display_data():
         processed_data = process_file()
         if processed_data:
             st.subheader("Header Information")
-            st.write(f"Identifier: {processed_data['header']['identifier']}")
-            st.write(f"Marker: {processed_data['header']['marker']}")
+            st.text(f"Identifier: {processed_data['header']['identifier']}")
+            st.text(f"Marker: {processed_data['header']['marker']}")
 
             st.subheader("Data Section")
             st.table(processed_data['data_section'])
