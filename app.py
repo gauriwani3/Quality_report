@@ -64,9 +64,11 @@ def process_file():
         if not line:
             continue
         if ':' in line:
+            # If it contains ":", split into key and value
             key, value = line.split(':', 1)
             parsed_data[key.strip()] = value.strip()
         else:
+            # If there's no ":", store the line as a key with None value
             parsed_data[line] = None
 
     return {
@@ -93,9 +95,10 @@ def display_data():
             st.subheader("Marker Hex Dump")
             st.text(processed_data['header']['identifier'])
 
-            # Data Section
+            # Data Section - Display as Key-Value pairs in a table
             st.subheader("Data Section")
             if processed_data['data_section']:
+                # Show the data section in a readable format (key-value pairs)
                 st.table(processed_data['data_section'])
             else:
                 st.write("No valid data found in the data section.")
