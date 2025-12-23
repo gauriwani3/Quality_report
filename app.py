@@ -16,13 +16,25 @@ def download_file():
 
 # Function to extract the header (first 128 bytes) and interpret it
 def extract_header(binary_data):
-    # Assuming the header size is 128 bytes
-    header = binary_data[:128]  # You may need to adjust this based on your file's format
+    # Assuming the header size should be 128 bytes, adjust if needed
+    header_size = 128
+    header = binary_data[:header_size]
     
-    # Example: Extracting a 20-byte identifier (string) and a float version number
-    identifier, version = struct.unpack('20s f', header)
-    identifier = identifier.decode('utf-8').strip()  # Decode and clean up
-    return identifier, version
+    # Check the length of the header before unpacking
+    st.write(f"Header Length: {len(header)}")  # This will display the length of the header
+    if len(header) < 24:  # Minimum length for a 20-byte string + 4-byte float
+        st.error("Header is smaller than expected. Check the .dat file format.")
+        return None, None
+
+    try:
+        # Adjust this format to match the actual binary structure of the file
+        identifier, version = struct.unpack('20s f', header)
+        identifier = identifier.decode('utf-8').strip()  # Decode and clean up
+        return identifier, version
+    except struct.error as e:
+        # Display the error if unpacking fails
+        st.error(f"Error unpacking header: {str(e)}")
+        return None, None
 
 # Function to process the entire binary file (header + data sections)
 def process_file():
@@ -34,6 +46,9 @@ def process_file():
     # Step 2: Extract the header
     identifier, version = extract_header(binary_data)
     
+    if not identifier or not version:
+        return None
+
     # Step 3: Process other data sections (modify according to your schema)
     # For simplicity, let's assume the next section is just integers.
     # Modify as needed based on your actual .dat file structure
@@ -70,4 +85,3 @@ def display_data():
 
 if __name__ == '__main__':
     display_data()
-
