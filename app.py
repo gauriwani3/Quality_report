@@ -4,7 +4,6 @@ import struct
 
 # GitHub URL for the .dat file in Releases
 url = "https://github.com/gauriwani3/Quality_report/releases/download/v1.0/Qual_Report_25LPML281106_1.__2025-12-01_06.17.42.dat"
-
 # Function to download the .dat file from GitHub Releases
 def download_file():
     response = requests.get(url)  # Sending a GET request to the file URL
@@ -22,18 +21,23 @@ def extract_header(binary_data):
     
     # Check the length of the header before unpacking
     st.write(f"Header Length: {len(header)}")  # This will display the length of the header
+    
     if len(header) < 24:  # Minimum length for a 20-byte string + 4-byte float
         st.error("Header is smaller than expected. Check the .dat file format.")
+        st.write(f"Header Data: {header.hex()}")  # Display header content in hexadecimal format
         return None, None
 
     try:
         # Adjust this format to match the actual binary structure of the file
+        st.write(f"Attempting to unpack: {header.hex()[:48]}...")  # Display first 48 hex characters for debugging
         identifier, version = struct.unpack('20s f', header)
         identifier = identifier.decode('utf-8').strip()  # Decode and clean up
         return identifier, version
     except struct.error as e:
         # Display the error if unpacking fails
         st.error(f"Error unpacking header: {str(e)}")
+        st.write(f"Header Data (raw): {header[:50]}")  # Display raw header bytes
+        st.write(f"Header Data (hex): {header.hex()[:100]}")  # Display hex for debugging
         return None, None
 
 # Function to process the entire binary file (header + data sections)
