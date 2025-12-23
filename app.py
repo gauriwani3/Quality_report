@@ -1,64 +1,63 @@
+import requests
 import struct
+from flask import Flask, jsonify
 
-# Function to read the binary file
-def read_binary_file(file_path):
-    with open(file_path, 'rb') as f:
-        return f.read()
+app = Flask(__name__)
 
-# Function to extract the header and return its contents
+# GitHub Releases URL for the .dat file
+# Update with the correct URL to your file in the releases section
+url = "https://github.com/gauriwani3/Quality_report/releases/download/v1.0/Qual_Report_25LPML281106_1.__2025-12-01_06.17.42.dat"
+
+# Function to download the .dat file from GitHub Releases
+def download_file():
+    response = requests.get(url)  # Sending a GET request to the file URL
+    if response.status_code == 200:
+        return response.content  # Return the raw binary content of the file
+    else:
+        return None  # If file isn't found or there's an error
+
+# Function to extract the header (first 128 bytes) and interpret it
 def extract_header(binary_data):
-    # Assuming the header size is fixed, for example, the first 128 bytes
-    header = binary_data[:128]  # Adjust based on your file's actual header size
+    # Assuming the header size is 128 bytes
+    header = binary_data[:128]  # You may need to adjust this based on your file's format
     
-    # For example, assume header contains a string identifier and a version number
-    identifier, version = struct.unpack('20s f', header)  # 20-byte string, float version number
-    identifier = identifier.decode('utf-8').strip()  # Decode string, removing any padding
-    print(f"Header info - Identifier: {identifier}, Version: {version}")
-    
-    return header, identifier, version
+    # Example: Extracting a 20-byte identifier (string) and a float version number
+    identifier, version = struct.unpack('20s f', header)
+    identifier = identifier.decode('utf-8').strip()  # Decode and clean up
+    return identifier, version
 
-# Function to extract a section of the file (assuming a specific section length)
-def extract_section(binary_data, start, length):
-    section_data = binary_data[start:start+length]
+# Function to process the entire binary file (header + data sections)
+def process_file():
+    # Step 1: Download the binary .dat file
+    binary_data = download_file()
+    if not binary_data:
+        return {"error": "File not found or failed to download."}
     
-    # Assuming this section contains mixed data types (e.g., integers and floats)
-    # For example, extracting 2 integers and 3 floats from the section
-    integers = struct.unpack('ii', section_data[:8])  # First 8 bytes for two integers
-    floats = struct.unpack('fff', section_data[8:20])  # Next 12 bytes for three floats
+    # Step 2: Extract the header
+    identifier, version = extract_header(binary_data)
     
-    print(f"Integers: {integers}")
-    print(f"Floats: {floats}")
+    # Step 3: Process other data sections (modify according to your schema)
+    # For simplicity, let's assume the next section is just integers.
+    # Modify as needed based on your actual .dat file structure
+    data_section = binary_data[128:]  # Assuming data starts after the header (128 bytes)
     
-    return integers, floats
-
-# Example function to process all sections based on the schema
-def process_file(file_path):
-    binary_data = read_binary_file(file_path)
+    # For example, let's assume the section contains 4-byte integers
+    section_data = struct.unpack('i' * (len(data_section) // 4), data_section)
     
-    # Extract header information
-    header, identifier, version = extract_header(binary_data)
-    
-    # Assuming section 1 starts at byte 128 and is 20 bytes long
-    section_1_start = 128
-    section_1_length = 20
-    section_1_data = extract_section(binary_data, section_1_start, section_1_length)
-    
-    # Assuming section 2 starts at byte 148 and is 40 bytes long
-    section_2_start = 148
-    section_2_length = 40
-    section_2_data = extract_section(binary_data, section_2_start, section_2_length)
-    
-    # Further sections can be processed similarly
     return {
         "header": {
             "identifier": identifier,
             "version": version
         },
-        "section_1": section_1_data,
-        "section_2": section_2_data
+        "data_section": section_data
     }
 
-# Example usage
-file_path = 'yourfile.dat'
-processed_data = process_file(file_path)
-print(processed_data)
+# Flask route to expose the processed data via an API
+@app.route('/process_file', methods=['GET'])
+def process_file_endpoint():
+    # Process the file and return the results as JSON
+    processed_data = process_file()
+    return jsonify(processed_data)
+
+if __name__ == '__main__':
+    app.run(debug=True)
