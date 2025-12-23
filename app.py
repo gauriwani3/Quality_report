@@ -1,11 +1,8 @@
+import streamlit as st
 import requests
 import struct
-from flask import Flask, jsonify
 
-app = Flask(__name__)
-
-# GitHub Releases URL for the .dat file
-# Update with the correct URL to your file in the releases section
+# GitHub URL for the .dat file in Releases
 url = "https://github.com/gauriwani3/Quality_report/releases/download/v1.0/Qual_Report_25LPML281106_1.__2025-12-01_06.17.42.dat"
 
 # Function to download the .dat file from GitHub Releases
@@ -14,7 +11,8 @@ def download_file():
     if response.status_code == 200:
         return response.content  # Return the raw binary content of the file
     else:
-        return None  # If file isn't found or there's an error
+        st.error("Failed to download the file.")
+        return None
 
 # Function to extract the header (first 128 bytes) and interpret it
 def extract_header(binary_data):
@@ -31,7 +29,7 @@ def process_file():
     # Step 1: Download the binary .dat file
     binary_data = download_file()
     if not binary_data:
-        return {"error": "File not found or failed to download."}
+        return None
     
     # Step 2: Extract the header
     identifier, version = extract_header(binary_data)
@@ -52,12 +50,24 @@ def process_file():
         "data_section": section_data
     }
 
-# Flask route to expose the processed data via an API
-@app.route('/process_file', methods=['GET'])
-def process_file_endpoint():
-    # Process the file and return the results as JSON
-    processed_data = process_file()
-    return jsonify(processed_data)
+# Streamlit app to display the data
+def display_data():
+    st.title("Quality Report - Processed Data from .dat File")
+    
+    # Process the file when the button is pressed
+    if st.button('Process .dat File'):
+        processed_data = process_file()
+        
+        if processed_data:
+            st.subheader("Header Information")
+            st.write(f"Identifier: {processed_data['header']['identifier']}")
+            st.write(f"Version: {processed_data['header']['version']}")
+            
+            st.subheader("Data Section")
+            st.write(processed_data['data_section'])
+        else:
+            st.write("Failed to process the file.")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    display_data()
+
