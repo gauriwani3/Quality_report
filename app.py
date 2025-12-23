@@ -28,16 +28,22 @@ def extract_header(binary_data):
         return None, None
 
     try:
-        # Adjust this format to match the actual binary structure of the file
-        st.write(f"Attempting to unpack: {header.hex()[:48]}...")  # Display first 48 hex characters for debugging
-        identifier, version = struct.unpack('20s f', header)
-        identifier = identifier.decode('utf-8').strip()  # Decode and clean up
-        return identifier, version
-    except struct.error as e:
+        # Extract the identifier (adjust based on the actual format observed)
+        identifier = header[:20].decode('utf-8').strip()  # First 20 bytes as the identifier
+        st.write(f"Identifier: {identifier}")
+        
+        # Look for any marker like `beginheader:` after the identifier (if it's part of the structure)
+        marker = header[20:].decode('utf-8', errors='ignore')  # Decode the remaining part for markers or extra info
+        st.write(f"Remaining Data after Identifier: {marker}")
+
+        # You can either adjust this further based on the actual format
+        # For now, we're skipping over the rest of the header and treating it as just an identifier.
+        
+        return identifier, marker  # Returning identifier and the rest of the header as marker
+    
+    except Exception as e:
         # Display the error if unpacking fails
-        st.error(f"Error unpacking header: {str(e)}")
-        st.write(f"Header Data (raw): {header[:50]}")  # Display raw header bytes
-        st.write(f"Header Data (hex): {header.hex()[:100]}")  # Display hex for debugging
+        st.error(f"Error processing header: {str(e)}")
         return None, None
 
 # Function to process the entire binary file (header + data sections)
@@ -48,14 +54,12 @@ def process_file():
         return None
     
     # Step 2: Extract the header
-    identifier, version = extract_header(binary_data)
+    identifier, marker = extract_header(binary_data)
     
-    if not identifier or not version:
+    if not identifier:
         return None
 
     # Step 3: Process other data sections (modify according to your schema)
-    # For simplicity, let's assume the next section is just integers.
-    # Modify as needed based on your actual .dat file structure
     data_section = binary_data[128:]  # Assuming data starts after the header (128 bytes)
     
     # For example, let's assume the section contains 4-byte integers
@@ -64,7 +68,7 @@ def process_file():
     return {
         "header": {
             "identifier": identifier,
-            "version": version
+            "marker": marker  # We’re using `marker` for now as the rest of the header data
         },
         "data_section": section_data
     }
@@ -80,7 +84,7 @@ def display_data():
         if processed_data:
             st.subheader("Header Information")
             st.write(f"Identifier: {processed_data['header']['identifier']}")
-            st.write(f"Version: {processed_data['header']['version']}")
+            st.write(f"Marker: {processed_data['header']['marker']}")
             
             st.subheader("Data Section")
             st.write(processed_data['data_section'])
