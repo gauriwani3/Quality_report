@@ -1,11 +1,8 @@
 import streamlit as st
 import requests
 
-# GitHub URL for the .dat file in Releases
-url = "https://github.com/gauriwani3/Quality_report/releases/download/v1.0/Qual_Report_25LPML281106_1.__2025-12-01_06.17.42.dat"
-
 # Function to download the .dat file from GitHub Releases
-def download_file():
+def download_file(url):
     response = requests.get(url)
     if response.status_code == 200:
         return response.content
@@ -40,9 +37,11 @@ def extract_header(binary_data):
     return identifier_hex, marker_str
 
 # Function to process the entire .dat file
-def process_file():
-    binary_data = download_file()
-    if not binary_data:
+def process_file(uploaded_file=None):
+    if uploaded_file:
+        binary_data = uploaded_file.read()
+    else:
+        st.error("No file uploaded.")
         return None
 
     identifier, marker = extract_header(binary_data)
@@ -83,8 +82,11 @@ def process_file():
 def display_data():
     st.title("Quality Report - Processed .dat File")
 
-    if st.button("Process .dat File"):
-        processed_data = process_file()
+    # File uploader to upload .dat file
+    uploaded_file = st.file_uploader("Upload a .dat file", type=["dat"])
+
+    if uploaded_file:
+        processed_data = process_file(uploaded_file=uploaded_file)
         if processed_data:
             # Header Information
             st.subheader("Header Information")
@@ -104,6 +106,8 @@ def display_data():
                 st.write("No valid data found in the data section.")
         else:
             st.write("Failed to process the file.")
+    else:
+        st.write("Please upload a .dat file to get started.")
 
 if __name__ == "__main__":
     display_data()
