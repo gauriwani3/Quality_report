@@ -60,11 +60,21 @@ def process_file():
     if not identifier:
         return None
 
-    # Step 3: Process other data sections (modify according to your schema)
+    # Step 3: Inspect the Data Section
     data_section = binary_data[128:]  # Assuming data starts after the header (128 bytes)
     
-    # For example, let's assume the section contains 4-byte integers
-    section_data = struct.unpack('i' * (len(data_section) // 4), data_section)
+    # Print first few bytes of the data section to inspect its structure
+    st.write(f"Data Section (first 64 bytes): {data_section[:64].hex()}")
+
+    # Here, we would need to modify the struct.unpack based on the data structure you observe
+    try:
+        # If the section contains integers (example), unpack it as a series of 4-byte integers
+        # Adjust the format based on what you find in the data section
+        # For now, let's assume it's a series of 4-byte integers
+        section_data = struct.unpack('i' * (len(data_section) // 4), data_section)
+    except struct.error as e:
+        st.error(f"Error unpacking data section: {str(e)}")
+        return None
     
     return {
         "header": {
