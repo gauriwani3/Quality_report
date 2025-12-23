@@ -29,14 +29,14 @@ def extract_header(binary_data):
     # The remaining 108 bytes as marker / metadata
     marker_bytes = header[20:]
 
-    try:
-        # Decode the marker bytes as ASCII text (ignoring errors)
-        marker_str = marker_bytes.decode('ascii', errors='ignore').strip()
-    except Exception as e:
-        st.error(f"Error decoding marker: {e}")
-        marker_str = ""
-
+    # Decode the marker bytes as ASCII text (ignoring non-ASCII characters)
+    marker_str = marker_bytes.decode('ascii', errors='ignore').strip()
     st.write(f"Marker Info (Decoded): {marker_str}")
+    
+    # Hex dump of the marker part to show any binary content in readable form
+    marker_hex = marker_bytes.hex().upper()
+    st.write(f"Marker (Hex): {marker_hex}")
+
     return identifier_hex, marker_str
 
 # Function to process the entire .dat file
@@ -88,6 +88,10 @@ def display_data():
             st.subheader("Header Information")
             st.text(f"Identifier (hex): {processed_data['header']['identifier']}")
             st.text(f"Marker: {processed_data['header']['marker']}")
+
+            # Display Hex Dump of the Marker
+            st.subheader("Marker Hex Dump")
+            st.text(processed_data['header']['identifier'])
 
             # Data Section
             st.subheader("Data Section")
