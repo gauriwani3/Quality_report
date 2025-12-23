@@ -19,9 +19,9 @@ def extract_header(binary_data):
     header = binary_data[:header_size]
 
     # Show header length (should be 128 bytes)
-    st.write(f"Header Length: {len(header)}")
+    st.write(f"Header Length: {len(header)} bytes")
 
-    # First 20 bytes as raw identifier (no decoding)
+    # First 20 bytes are raw identifier (no decoding)
     identifier_bytes = header[:20]
     identifier_hex = identifier_bytes.hex().upper()  # Show identifier in hex format
     st.write(f"Identifier (hex): {identifier_hex}")
@@ -36,7 +36,7 @@ def extract_header(binary_data):
         st.error(f"Error decoding marker: {e}")
         marker_str = ""
 
-    st.write(f"Marker Info: {marker_str}")
+    st.write(f"Marker Info (Decoded): {marker_str}")
     return identifier_hex, marker_str
 
 # Function to process the entire .dat file
@@ -57,7 +57,7 @@ def process_file():
         st.error(f"Error decoding data section: {e}")
         return None
 
-    # Parse the data section into key-value pairs
+    # Parse the data section into key-value pairs (if any)
     parsed_data = {}
     for line in data_section_str.splitlines():
         line = line.strip()
@@ -77,19 +77,24 @@ def process_file():
         "data_section": parsed_data
     }
 
-# Streamlit UI
+# Streamlit UI to display data
 def display_data():
     st.title("Quality Report - Processed .dat File")
 
     if st.button("Process .dat File"):
         processed_data = process_file()
         if processed_data:
+            # Header Information
             st.subheader("Header Information")
             st.text(f"Identifier (hex): {processed_data['header']['identifier']}")
             st.text(f"Marker: {processed_data['header']['marker']}")
 
+            # Data Section
             st.subheader("Data Section")
-            st.table(processed_data['data_section'])
+            if processed_data['data_section']:
+                st.table(processed_data['data_section'])
+            else:
+                st.write("No valid data found in the data section.")
         else:
             st.write("Failed to process the file.")
 
