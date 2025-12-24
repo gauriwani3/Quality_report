@@ -1,102 +1,113 @@
 import streamlit as st
-import numpy as np
 import requests
 
-# -------------------------------
-# Extract header from binary file
-# -------------------------------
+# Function to download the .dat file from GitHub Releases
+def download_file(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.content
+    else:
+        st.error("Failed to download the file from GitHub.")
+        return None
+
+# Function to extract the header safely
 def extract_header(binary_data):
     header_size = 128
     header = binary_data[:header_size]
 
+    # Show header length (should be 128 bytes)
     st.write(f"Header Length: {len(header)} bytes")
 
-    # First 20 bytes: identifier (binary)
+    # First 20 bytes are raw identifier (no decoding)
     identifier_bytes = header[:20]
-    identifier_hex = identifier_bytes.hex().upper()
+    identifier_hex = identifier_bytes.hex().upper()  # Show identifier in hex format
     st.write(f"Identifier (hex): {identifier_hex}")
 
-    # Remaining 108 bytes: marker / metadata
+    # The remaining 108 bytes as marker / metadata
     marker_bytes = header[20:]
-    marker_str = marker_bytes.decode("ascii", errors="ignore").strip()
-    marker_hex = marker_bytes.hex().upper()
 
-    st.write("Marker Info (Decoded):")
-    st.text(marker_str)
+    # Decode the marker bytes as ASCII text (ignoring non-ASCII characters)
+    marker_str = marker_bytes.decode('ascii', errors='ignore').strip()
+    st.write(f"Marker Info (Decoded): {marker_str}")
+    
+    # Hex dump of the marker part to show any binary content in readable form
+    marker_hex = marker_bytes.hex().upper()
+    st.write(f"Marker (Hex): {marker_hex}")
 
     return identifier_hex, marker_str
 
-
-# -------------------------------
-# Process uploaded .dat file
-# -------------------------------
-def process_file(uploaded_file):
-    if not uploaded_file:
+# Function to process the entire .dat file
+def process_file(uploaded_file=None):
+    if uploaded_file:
+        binary_data = uploaded_file.read()
+    else:
         st.error("No file uploaded.")
         return None
 
-    binary_data = uploaded_file.read()
-
-    # Extract header
     identifier, marker = extract_header(binary_data)
 
-    # Data starts after 128-byte header
+    # Data section starts after 128-byte header
     data_section = binary_data[128:]
 
-    # Decode binary REAL values (float32)
+    # Decode data section safely as UTF-8
     try:
-        data_array = np.frombuffer(data_section, dtype=np.float32)
+        data_section_str = data_section.decode('utf-8', errors='ignore')
     except Exception as e:
-        st.error(f"Binary decode error: {e}")
+        st.error(f"Error decoding data section: {e}")
         return None
+
+    # Parse the data section into key-value pairs (if any)
+    parsed_data = {}
+    for line in data_section_str.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if ':' in line:
+            # If it contains ":", split into key and value
+            key, value = line.split(':', 1)
+            parsed_data[key.strip()] = value.strip()
+        else:
+            # If there's no ":", store the line as a key with None value
+            parsed_data[line] = None
 
     return {
         "header": {
             "identifier": identifier,
             "marker": marker
         },
-        "data": data_array
+        "data_section": parsed_data
     }
 
-
-# -------------------------------
-# Streamlit UI
-# -------------------------------
+# Streamlit UI to display data
 def display_data():
-    st.title("Quality Report – .dat File Viewer")
+    st.title("Quality Report - Processed .dat File")
 
+    # File uploader to upload .dat file
     uploaded_file = st.file_uploader("Upload a .dat file", type=["dat"])
 
     if uploaded_file:
-        processed = process_file(uploaded_file)
-
-        if processed:
-            # Header info
+        processed_data = process_file(uploaded_file=uploaded_file)
+        if processed_data:
+            # Header Information
             st.subheader("Header Information")
-            st.text(f"Identifier (hex): {processed['header']['identifier']}")
-            st.text("Marker:")
-            st.text(processed['header']['marker'])
+            st.text(f"Identifier (hex): {processed_data['header']['identifier']}")
+            st.text(f"Marker: {processed_data['header']['marker']}")
 
-            # Data section
-            st.subheader("Data Section (Binary REAL values)")
+            # Display Hex Dump of the Marker
+            st.subheader("Marker Hex Dump")
+            st.text(processed_data['header']['identifier'])
 
-            data = processed["data"]
-
-            st.write(f"Total Samples: {len(data)}")
-
-            # Show first samples
-            st.write("First 20 Samples:")
-            st.write(data[:20])
-
-            # Plot data
-            st.subheader("Signal Plot (First 1000 Samples)")
-            st.line_chart(data[:1000])
-
+            # Data Section - Display as Key-Value pairs in a table
+            st.subheader("Data Section")
+            if processed_data['data_section']:
+                # Show the data section in a readable format (key-value pairs)
+                st.table(processed_data['data_section'])
+            else:
+                st.write("No valid data found in the data section.")
         else:
-            st.error("Failed to process file.")
+            st.write("Failed to process the file.")
     else:
-        st.info("Please upload a .dat file to begin.")
-
+        st.write("Please upload a .dat file to get started.")
 
 if __name__ == "__main__":
     display_data()
